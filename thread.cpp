@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstring>
 #include <map>
 #include <set>
 #include <functional>
@@ -15,6 +16,8 @@ const int BOARD_SIZE = 15;
 const char EMPTY = '-';
 const char PLAYER_X = 'X';
 const char PLAYER_O = 'O';
+
+int iteration = 0;
 
 class Gomoku
 {
@@ -67,6 +70,8 @@ class Gomoku
   const char *THREE_6_2 = "--XX--";
 
 public:
+
+  std::map<int,bool> visit_map;
 
   struct board
   {
@@ -133,8 +138,13 @@ private:
 
   int de = 0;
 
-  std::pair<std::vector<std::pair<int, int>>, bool> dfs(std::map<std::string, std::pair<TSSNode, bool>> visited, TSSNode startNode, std::map<std::string, TSSNode> m, int player, int depth)
+  std::pair<std::vector<std::pair<int, int>>, bool> dfs(std::map<std::string, std::pair<TSSNode, bool>> visited, TSSNode startNode, std::map<std::string, TSSNode> m, int player, int depth, int path_value)
   {
+    int now_x = startNode.gainSquare.first + 1;
+    int now_y = startNode.gainSquare.second + 1;
+    int point_value = (depth << 9) + (player << 8) + (now_x << 4) + (now_y << 0);
+    path_value ^= point_value;
+
     debug << "enter" << std::endl;
     // std::string store= strinify(startNode.gainSquare, startNode.costSquares);
     visited[strinify(startNode.gainSquare, startNode.costSquares)] = std::mp(startNode, true);
@@ -147,11 +157,22 @@ private:
     {
       debug << "return" << std::endl;
       de++;
+      visit_map[path_value] == 1;
       return std::mp(path, true);
     }
     else if (depth == 5)
     {
       debug << "failed" << std::endl;
+      visit_map[path_value] == 2;
+      return std::mp(path, false);
+    }
+
+    // check if visited
+    if(visit_map[path_value] == 1){ 
+      de++;
+      return std::mp(path, true);
+    }
+    else if(visit_map[path_value] == 2){
       return std::mp(path, false);
     }
 
@@ -184,7 +205,7 @@ private:
 
       bool che = 0;
       if (tt.size() == 0)
-        dfs(visited, startNode, tt, player, depth + 1);
+        dfs(visited, startNode, tt, player, depth + 1, path_value);
 
       for (auto &pair : tt)
       {
@@ -216,7 +237,7 @@ private:
         debug << pair.second.gainSquare.first + 1 << " " << pair.second.gainSquare.second + 1 << " " << depth + 1 << std::endl;
 
         pair.second.board_ = startNode.board_;
-        std::pair<std::vector<std::pair<int, int>>, bool> pp = dfs(visited, pair.second, tt, player, depth + 1);
+        std::pair<std::vector<std::pair<int, int>>, bool> pp = dfs(visited, pair.second, tt, player, depth + 1, path_value);
         
         if (pp.second){
           che = 1;
@@ -235,6 +256,7 @@ private:
       ck = true;
       path.push_back(std::mp(startNode.gainSquare.first, startNode.gainSquare.second)); 
     }
+    visit_map[path_value] = ck ? 1 : 2;
     return std::mp(path, ck);
   }
 
@@ -259,6 +281,7 @@ public:
 
   std::map<std::string, TSSNode> checkThreat(std::vector<std::vector<board>> board_, std::map<std::string, TSSNode> threat, int x, int y, const char *goal, char *t, int dir, int player)
   {
+    iteration++;
 
     std::vector<std::pair<int, int>> store;
     if (t == nullptr || strlen(t) == 0)
@@ -529,7 +552,7 @@ public:
       //if (it->second.gainSquare.first + 1 == 1 && it->second.gainSquare.second + 1 == 5)
       //{
       info<<"start: "<<it->second.gainSquare.first + 1<<" "<<it->second.gainSquare.second + 1<<std::endl;
-      std::pair<std::vector<std::pair<int, int>>, bool> ck = dfs(t, it->second, temp, player, 1);
+      std::pair<std::vector<std::pair<int, int>>, bool> ck = dfs(t, it->second, temp, player, 1, 0);
       temp = threatMap;
       if (ck.second){
         cnt++;
@@ -571,7 +594,7 @@ int main()
       {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
       {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
       {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'}};
-  char arr1[15][15] = {
+  char arr2[15][15] = {
       {'X', 'X', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'X', 'X', 'X'},
       {'X', '-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-', 'X'},
       {'X', '-', '-', '-', '-', '-', 'X', '-', 'O', '-', '-', '-', '-', '-', 'X'},
@@ -587,7 +610,22 @@ int main()
       {'X', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'X'},
       {'X', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'X'},
       {'X', 'X', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'X', 'X', 'X'}};
-
+  char arr1[15][15] = {
+      {'X', 'X', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', 'X', 'X', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'}};
   for (int i = 0; i < 15; i++)
     std::cout << " " << (i + 1) % 10;
   std::cout << std::endl;
@@ -637,5 +675,6 @@ int main()
     }
     std::cout << std::endl;
   }
+  std::cout << iteration << '\n';
   return 0;
 }

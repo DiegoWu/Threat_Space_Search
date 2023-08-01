@@ -1,3 +1,12 @@
 
 *.exe
 a.txt
+a.txt
+str
+thread
+*.json
+*.json
+*.json
+*.plist
+str.dSYM/Contents/Resources/DWARF/str
+thread.dSYM/Contents/Resources/DWARF/thread

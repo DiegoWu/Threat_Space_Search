@@ -12,7 +12,7 @@
 std::ostream &info = std::cout;
 std::ostream &debug = *(new std::ofstream);
 // std::ostream &debug = std::cout;
-
+std::ostream &chck= *(new std::ofstream);
 const int BOARD_SIZE = 15;
 const char EMPTY = '-';
 const char PLAYER_X = 'X';
@@ -44,6 +44,7 @@ class Gomoku
   const char *THREE_07 = "--O-O--";
   const char *THREE_07_1 = "---OO--";
   const char *THREE_06 = "--O-O-";
+  const char *THREE_06_0 = "-O--O-";
   const char *THREE_06_1 = "---OO-";
   const char *THREE_06_2 = "--OO--";
 
@@ -67,6 +68,7 @@ class Gomoku
   const char *THREE_7 = "--X-X--";
   const char *THREE_7_1 = "---XX--";
   const char *THREE_6 = "--X-X-";
+  const char *THREE_6_0 = "-X--X-";
   const char *THREE_6_1 = "---XX-";
   const char *THREE_6_2 = "--XX--";
 
@@ -141,6 +143,7 @@ private:
 
   std::pair<std::vector<std::pair<int, int>>, bool> dfs(std::map<std::string, std::pair<TSSNode, bool>> visited, TSSNode startNode, std::map<std::string, TSSNode> m, int player, int depth, int path_value)
   {
+    debug<< "visit map size: "<< visit_map.size()<<std::endl;
     int now_x = startNode.gainSquare.first + 1;
     int now_y = startNode.gainSquare.second + 1;
     int point_value = (depth << 9) + (player << 8) + (now_x << 4) + (now_y << 0);
@@ -161,7 +164,7 @@ private:
       visit_map[path_value] == 1;
       return std::mp(path, true);
     }
-    else if (depth == 5)
+    else if (depth == 100)
     {
       debug << "failed" << std::endl;
       visit_map[path_value] == 2;
@@ -283,18 +286,22 @@ public:
   std::map<std::string, TSSNode> checkThreat(std::vector<std::vector<board>> board_, std::map<std::string, TSSNode> threat, int x, int y, const char *goal, char *t, int dir, int player)
   {
     iteration++;
-
+    //chck<<"goal: "<<goal<<std::endl;
     std::vector<std::pair<int, int>> store;
-    if (t == nullptr || strlen(t) == 0)
+    if (t == nullptr || strlen(t) <=4)
       return threat;
     char *str;
-
+  
     int size = strlen(goal);
     std::set<std::pair<int, int>> record;
     // std::cout<<t<<std::endl;
+    int num =0; 
     while ((str = strstr(t, goal)) != nullptr)
     {
-      x += (str - t) * DIR_X[dir], y += (str - t) * DIR_Y[dir];
+      if(!num)  x += (str - t) * DIR_X[dir], y += (str - t) * DIR_Y[dir];
+      else x+= (str-t+1)*DIR_X[dir], y+= (str-t+1)*DIR_Y[dir];
+      num++; 
+      chck<<x+1<<" "<<y+1<<" "<<goal<<" "<<dir<<std::endl; 
       bool flag = false;
       for (int i = 0; i < size; i++)
       {
@@ -318,6 +325,23 @@ public:
         threat[tt] = node;
       }
 
+      else if (goal== THREE_6_0 || goal== THREE_06_0){
+
+        for (int i=0; i<2; i++){
+          TSSNode node;
+          node.gainSquare = std::mp(x + DIR_X[dir] * (i+2), y + DIR_Y[dir] * (i+2));
+          for (int j=0; j<6; j++){
+            if(x+DIR_X[dir] * j == node.gainSquare.first && y+DIR_Y[dir] * j == node.gainSquare.second|| board_[x + DIR_X[dir] * j][y + DIR_Y[dir] * j].type != EMPTY)
+              continue;
+            node.costSquares.insert(std::mp(x + DIR_X[dir] * j, y + DIR_Y[dir] * j));
+          }
+          node.typeOfThreats = goal;
+          node.player = player;
+          std::string tt = strinify(node.gainSquare, node.costSquares);
+          threat[tt] = node;
+        }
+
+      }
       else if (goal == THREE_6 || goal == THREE_6_1 || goal == THREE_06 || goal == THREE_06_1 || goal == THREE_06_2 || goal == THREE_6_2)
       {
         for (int i = 1; i < 5; i++)
@@ -332,7 +356,7 @@ public:
             continue;
           node.gainSquare = std::mp(x + DIR_X[dir] * i, y + DIR_Y[dir] * i);
           node.player = player;
-          r.insert(node.gainSquare);
+          //r.insert(node.gainSquare);
 
           for (auto &pair : record)
             if (pair != node.gainSquare)
@@ -342,7 +366,7 @@ public:
           threat[tt] = node;
         }
       }
-      if (goal == FOUR_0 || goal == FOUR_00)
+      else if (goal == FOUR_0 || goal == FOUR_00)
       {
         TSSNode node;
         node.gainSquare = std::mp(x + DIR_X[dir] * 1, y + DIR_Y[dir] * 1);
@@ -366,7 +390,7 @@ public:
         tt = strinify(node.gainSquare, node.costSquares);
         threat[tt] = node;
       }
-      if (goal == FOUR_1 || goal == FOUR_01)
+      else if (goal == FOUR_1 || goal == FOUR_01)
       {
         TSSNode node;
         node.gainSquare = std::mp(x + DIR_X[dir] * 4, y + DIR_Y[dir] * 4);
@@ -379,13 +403,13 @@ public:
         node.player = player;
         threat[tt] = node;
       }
-      if (goal == FOUR_2 || goal == FOUR_02)
+      else if (goal == FOUR_2 || goal == FOUR_02)
       {
         if (!isValid(x - DIR_X[dir], y - DIR_Y[dir]) || board_[x - DIR_X[dir]][y - DIR_Y[dir]].type != EMPTY)
           flag = 1;
       }
 
-      if (goal == FOUR_03 || goal == FOUR_3)
+      else if (goal == FOUR_03 || goal == FOUR_3)
       {
         TSSNode node;
         node.gainSquare = std::mp(x + DIR_X[dir] * 3, y + DIR_Y[dir] * 3);
@@ -397,17 +421,34 @@ public:
         p[std::mp(node.gainSquare.first, node.gainSquare.second)].push_back(std::mp(x, y));
         p[std::mp(node.gainSquare.first, node.gainSquare.second)].push_back(std::mp(x + DIR_X[dir] * 5, y + DIR_Y[dir] * 5));
       }
-      if (goal == FOUR_4 || goal == FOUR_04)
+      else if (goal == FOUR_4 || goal == FOUR_04)
       {
         if (!isValid(x - DIR_X[dir], y - DIR_Y[dir]) || board_[x - DIR_X[dir]][y - DIR_Y[dir]].type != EMPTY)
           flag = 1;
       }
-      if (goal == FOUR_5 || goal == FOUR_05)
+      else if (goal == FOUR_5 || goal == FOUR_05)
       {
         if (!isValid(x + DIR_X[dir] * 5, y + DIR_X[dir] * 5) || board_[x + DIR_X[dir] * 5][y + DIR_Y[dir] * 5].type != EMPTY)
           flag = 1;
       }
-      if (goal == FOUR_6 || goal == FOUR_7 || goal == FOUR_06 || goal == FOUR_07 || terminate(goal))
+      /*
+      else if(goal== FOUR_7|| goal== FOUR_07){
+         for (int i=0; i<2; i++){
+          TSSNode node;
+          if(!isValid(x + DIR_X[dir] * (1+i*2), y + DIR_Y[dir] * (1+i*2)) || board_[x + DIR_X[dir] * (1+i*2)][y + DIR_Y[dir] * (1+i*2)].type != EMPTY)
+            break; 
+          if(!isValid(x + DIR_X[dir] * (3-i*2), y + DIR_Y[dir] * (3-i*2)) || board_[x + DIR_X[dir] * (3-i*2)][y + DIR_Y[dir] * (3-i*2)].type != EMPTY)
+            break;
+          node.gainSquare = std::mp(x + DIR_X[dir] * (1+i*2), y + DIR_Y[dir] * (1+i*2));
+          node.costSquares.insert(std::mp(x + DIR_X[dir] * (3-i*2), y + DIR_Y[dir] * (3-i*2)));
+          node.typeOfThreats = goal;
+          node.player = player;
+          std::string tt = strinify(node.gainSquare, node.costSquares);
+          threat[tt] = node;
+        }
+      }
+      */
+      else if (goal == FOUR_6 || goal == FOUR_06  || terminate(goal))
         flag = 1;
 
       if (flag)
@@ -419,7 +460,7 @@ public:
           TSSNode node;
           node.gainSquare = std::mp(x + DIR_X[dir] * i, y + DIR_Y[dir] * i);
           node.player = player;
-          r.insert(std::mp(x + DIR_X[dir] * i, y + DIR_Y[dir] * i));
+          //r.insert(std::mp(x + DIR_X[dir] * i, y + DIR_Y[dir] * i));
 
           node.typeOfThreats = goal;
 
@@ -429,16 +470,16 @@ public:
               continue;
             node.costSquares.insert(pair);
 
-            p[std::mp(node.gainSquare.first, node.gainSquare.second)].push_back(pair);
+            //p[std::mp(node.gainSquare.first, node.gainSquare.second)].push_back(pair);
           }
 
           std::string tt = strinify(node.gainSquare, node.costSquares);
-          node.typeOfThreats = goal;
+          
           threat[tt] = node;
         }
       }
 
-      x += DIR_X[dir] * (size - 1), y += DIR_Y[dir] * (size - 1), t = str + 1;
+      t = str + 1;
       record.clear();
     }
     return threat;
@@ -497,6 +538,7 @@ public:
         m = checkThreat(b, m, x, y, THREE_07_1, temp, i, player);
         m = checkThreat(b, m, x, y, THREE_07, temp, i, player);
         m = checkThreat(b, m, x, y, THREE_06, temp, i, player);
+        m= checkThreat(b, m, x, y, THREE_06_0, temp, i, player);
         m = checkThreat(b, m, x, y, THREE_06_1, temp, i, player);
         m = checkThreat(b, m, x, y, THREE_06_2, temp, i, player);
       }
@@ -521,6 +563,7 @@ public:
         m = checkThreat(b, m, x, y, THREE_7_1, temp, i, player);
         m = checkThreat(b, m, x, y, THREE_7, temp, i, player);
         m = checkThreat(b, m, x, y, THREE_6, temp, i, player);
+        m= checkThreat(b, m, x, y, THREE_6_0, temp, i, player); 
         m = checkThreat(b, m, x, y, THREE_6_1, temp, i, player);
         m = checkThreat(b, m, x, y, THREE_6_2, temp, i, player);
       }
@@ -552,7 +595,9 @@ public:
 
       //if (it->second.gainSquare.first + 1 == 1 && it->second.gainSquare.second + 1 == 5)
       //{
+        
       info<<"start: "<<it->second.gainSquare.first + 1<<" "<<it->second.gainSquare.second + 1<<std::endl;
+     
       std::pair<std::vector<std::pair<int, int>>, bool> ck = dfs(t, it->second, temp, player, 1, 0);
       temp = threatMap;
       if (ck.second){
@@ -561,6 +606,8 @@ public:
           info<<"<-"<<ck.first+1<<" "<< ck.second+1;  
         info<<std::endl;  
       }
+      
+      
       //}
     }
     info << "cnt: " << cnt << std::endl;
@@ -627,6 +674,22 @@ int main()
       {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
       {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
       {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'}};
+  char arr3[15][15] = {
+      {'X', 'X', 'X', 'X', 'O', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', 'O', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', 'O', '-', 'X', 'X', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', 'O', '-', 'X', '-', '-', '-', '-', '-', 'O', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', 'X', '-', '-', '-', '-', 'X', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', 'X', 'O', 'X', 'X', 'X', 'X', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', 'O', '-', 'X', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
+      {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'}}; 
   for (int i = 0; i < 15; i++)
     std::cout << " " << (i + 1) % 10;
   std::cout << std::endl;
@@ -654,19 +717,22 @@ int main()
   for (auto i = m.begin(); i != m.end(); i++)
   {
     arr1[i->second.gainSquare.first][i->second.gainSquare.second] = 'T';
-    std::cout << i->second.gainSquare.first + 1 << " " << i->second.gainSquare.second + 1 << std::endl;
+    std::cout<<i->second.gainSquare.first + 1<<" "<<i->second.gainSquare.second + 1<<" "<<i->second.typeOfThreats<<std::endl;
     for (auto &pair : i->second.costSquares)
     {
       // std::cout << pair.first + 1 << " " << pair.second + 1 << std::endl;
-      if (arr1[pair.first][pair.second] == 'T')
+      if (arr1[pair.first][pair.second] == 'T'){
         arr1[pair.first][pair.second] = 'T';
+      }
       else
         arr1[pair.first][pair.second] = 'C';
     }
     std::cout << std::endl;
   }
   std::cout << "----------------------------------------------" << std::endl;
-
+for (int i = 0; i < 15; i++)
+    std::cout << " " << (i + 1) % 10;
+std::cout<<std::endl;
   for (int i = 0; i < 15; i++)
   {
     std::cout << (i + 1) % 10;
